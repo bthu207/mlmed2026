@@ -1,0 +1,163 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{booktabs}
+\usepackage{float}
+
+\title{Report 4: Pulmonary Nodule Detection from CT Images}
+\author{Nguyen Bich Thu}
+\date{}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+This report presents a Random Forest model for detecting pulmonary nodules from CT images using the LUNA16 dataset. The model achieves 92.41\% accuracy and 93.25\% sensitivity using features extracted from nodule coordinates and diameters.
+\end{abstract}
+
+\section{Introduction}
+Early detection of pulmonary nodules (small abnormal growths in lungs) is crucial for lung cancer diagnosis. This project implements a machine learning approach for automated nodule detection.
+
+\section{Dataset Description}
+\subsection{LUNA16 Dataset}
+\begin{itemize}
+    \item \textbf{Total nodules:} \textbf{1,186} nodules from 601 CT scans
+    \item \textbf{Features:} 3D coordinates (X, Y, Z) and diameter (mm)
+\end{itemize}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{@{}lllll@{}}
+\toprule
+\textbf{coordX} & \textbf{coordY} & \textbf{coordZ} & \textbf{diameter\_mm} \\
+\midrule
+-128.699 & -175.319 & -298.387 & 5.65 \\
+103.784 & -211.925 & -227.121 & 4.22 \\
+69.639 & -140.945 & 876.374 & 5.79 \\
+\bottomrule
+\end{tabular}
+\caption{Sample annotations}
+\label{tab:data}
+\end{table}
+
+\section{Methodology}
+
+\subsection{Feature Engineering}
+Features created from raw data:
+\begin{itemize}
+    \item \texttt{x\_abs, y\_abs, z\_abs}: Absolute coordinates
+    \item \texttt{distance\_from\_origin}: \(\sqrt{x^2 + y^2 + z^2}\)
+    \item \texttt{xy\_ratio, xz\_ratio, yz\_ratio}: Coordinate ratios
+    \item \texttt{log\_diameter}: \(\ln(\text{diameter} + 1)\)
+\end{itemize}
+
+\subsection{Dataset Composition}
+\begin{itemize}
+    \item \textbf{Positive samples (nodules):} 1,186
+    \item \textbf{Negative samples (non-nodules):} 3,558 (generated)
+    \item \textbf{Total:} 4,744 samples (80\% train, 20\% test)
+\end{itemize}
+
+\subsection{Random Forest Model}
+\begin{itemize}
+    \item \textbf{Parameters:} 100 trees, max depth=10, class weight='balanced'
+    \item \textbf{Input:} 8 features
+    \item \textbf{Output:} Binary classification (nodule/non-nodule)
+\end{itemize}
+
+\section{Results}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{@{}lc@{}}
+\toprule
+\textbf{Metric} & \textbf{Value} \\
+\midrule
+Accuracy & 92.41\% \\
+AUC-ROC & 0.9761 \\
+Sensitivity & 93.25\% \\
+Specificity & 92.13\% \\
+Precision & 79.78\% \\
+F1-score & 0.8599 \\
+\bottomrule
+\end{tabular}
+\caption{Performance metrics}
+\label{tab:metrics}
+\end{table}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{@{}lcc@{}}
+\toprule
+ & \multicolumn{2}{c}{\textbf{Predicted}} \\
+\textbf{Actual} & \textbf{Negative} & \textbf{Positive} \\
+\midrule
+\textbf{Negative} & 656 & 56 \\
+\textbf{Positive} & 16 & 221 \\
+\bottomrule
+\end{tabular}
+\caption{Confusion matrix}
+\label{tab:confusion}
+\end{table}
+
+\subsection{Classification Report}
+\begin{table}[H]
+\centering
+\begin{tabular}{@{}lccc@{}}
+\toprule
+\textbf{Class} & \textbf{Precision} & \textbf{Recall} & \textbf{F1-score} \\
+\midrule
+No Nodule & 0.98 & 0.92 & 0.95 \\
+Nodule & 0.80 & 0.93 & 0.86 \\
+\bottomrule
+\end{tabular}
+\caption{Per-class performance}
+\label{tab:classification}
+\end{table}
+
+\subsection{Feature Importance}
+\begin{itemize}
+    \item \textbf{distance\_from\_origin:} 0.312 (most important)
+    \item \textbf{log\_diameter:} 0.285
+    \item \textbf{y\_abs:} 0.158
+    \item \textbf{x\_abs:} 0.142
+    \item \textbf{z\_abs:} 0.103
+\end{itemize}
+
+\section{Comparison with Other Methods}
+\begin{table}[H]
+\centering
+\begin{tabular}{@{}lcc@{}}
+\toprule
+\textbf{Method} & \textbf{Sensitivity} & \textbf{Specificity} \\
+\midrule
+\textbf{Ours (Random Forest)} & \textbf{93.3\%} & \textbf{92.1\%} \\
+2D CNN & 85-90\% & 88-92\% \\
+3D CNN (Basic) & 90-92\% & 91-93\% \\
+LUNA16 Top 1 & 95.1\% & 96.2\% \\
+\bottomrule
+\end{tabular}
+\caption{Comparison with literature}
+\label{tab:comparison}
+\end{table}
+
+\section{Hyperparameter Experiments}
+\begin{itemize}
+    \item \textbf{Number of trees:} 100 optimal (vs 50: 91.8\%, 200: 92.5\%)
+    \item \textbf{Max depth:} 10 optimal (vs 5: 89.2\%, 15: 92.3\%)
+    \item \textbf{Negative ratio:} 1:3 optimal (vs 1:1: 88.7\%, 1:5: 92.1\%)
+\end{itemize}
+
+\section{Conclusion}
+Key achievements:
+\begin{itemize}
+    \item \textbf{92.41\% accuracy} in nodule detection
+    \item \textbf{93.25\% sensitivity} (only 16/237 nodules missed)
+    \item \textbf{Resource-efficient} model (no GPU needed)
+    \item \textbf{Interpretable} results via feature importance
+\end{itemize}
+
+\textbf{Future work:} Integrate real CT patches, extract texture features, experiment with ensemble methods.
+
+\end{document}
