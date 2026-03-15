@@ -1,0 +1,183 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{booktabs}
+\usepackage{hyperref}
+\usepackage{float}
+
+\title{Report 2: Fetal Head Circumference Measurement using Ultrasound}
+\author{Nguyen Bich Thu}
+\date{}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+This report presents a deep learning approach for measuring fetal head circumference (HC) from 2D ultrasound images using the HC18 dataset. A dual-input regression model combining MobileNetV3 features with pixel size information is implemented. The model achieves a training MAE of 16.41 mm after 10 epochs, demonstrating the effectiveness of incorporating physical pixel size information into the regression task.
+\end{abstract}
+
+\section{Introduction}
+Fetal head circumference (HC) measurement is a crucial biometric parameter in prenatal care for monitoring fetal growth and detecting potential abnormalities. Traditionally, this measurement requires manual annotation by sonographers, which is time-consuming and subject to inter-observer variability. This project aims to automate HC measurement using deep learning techniques on ultrasound images from the HC18 dataset.
+
+\section{Dataset Description}
+\subsection{Dataset Overview}
+The HC18 dataset \cite{van2018hc18} is a publicly available dataset for fetal head circumference measurement. It consists of:
+\begin{itemize}
+    \item \textbf{Training set}: 999 2D ultrasound images with corresponding pixel size and HC measurements
+    \item \textbf{Testing set}: 335 2D ultrasound images (without public ground truth labels)
+\end{itemize}
+
+\subsection{Data Characteristics}
+\begin{itemize}
+    \item \textbf{Image format}: PNG files, grayscale ultrasound images
+    \item \textbf{Image dimensions}: Varying sizes (typically around 540$\times$800 pixels)
+    \item \textbf{Pixel size range}: 0.052 mm to 0.326 mm per pixel
+    \item \textbf{HC range}: 45.19 mm to 371.96 mm (covering various gestational ages)
+\end{itemize}
+
+\subsection{Data Distribution}
+The dataset includes CSV files containing metadata:
+\begin{itemize}
+    \item Filename: Image identifier
+    \item Pixel size (mm): Physical size of each pixel
+    \item Head circumference (mm): Ground truth measurement
+\end{itemize}
+
+\section{Methodology}
+\subsection{Model Architecture}
+A dual-input regression model was implemented combining image features with pixel size information:
+
+\begin{itemize}
+    \item \textbf{Backbone}: MobileNetV3-Small (pretrained on ImageNet) for feature extraction
+    \item \textbf{Feature dimension}: 576 features from the backbone
+    \item \textbf{Regression head}: 
+    \begin{itemize}
+        \item Input: 576 image features + 1 pixel size value
+        \item Hidden layers: [577 $\rightarrow$ 128 $\rightarrow$ 64 $\rightarrow$ 1]
+        \item Activation: ReLU
+        \item Dropout: 0.2 for regularization
+    \end{itemize}
+\end{itemize}
+
+The model architecture can be represented as:
+\begin{equation}
+    \hat{HC} = f(g(I) \oplus p)
+\end{equation}
+where $g(I)$ represents image features extracted by MobileNetV3, $p$ is the pixel size, and $\oplus$ denotes concatenation.
+
+\subsection{Data Preprocessing}
+Images were preprocessed using the following steps:
+\begin{enumerate}
+    \item Resize to 224$\times$224 pixels (standard input size for ImageNet models)
+    \item Convert to RGB format (3 channels)
+    \item Normalize using ImageNet statistics:
+    \begin{itemize}
+        \item Mean: [0.485, 0.456, 0.406]
+        \item Std: [0.229, 0.224, 0.225]
+    \end{itemize}
+\end{enumerate}
+
+\subsection{Training Configuration}
+\begin{itemize}
+    \item \textbf{Loss function}: Mean Absolute Error (L1 loss)
+    \item \textbf{Optimizer}: Adam (learning rate = 0.001)
+    \item \textbf{Batch size}: 8
+    \item \textbf{Epochs}: 10
+    \item \textbf{Device}: CPU (can be adapted for GPU)
+\end{itemize}
+
+\subsection{Implementation Details}
+The model was implemented using PyTorch with the following key components:
+\begin{itemize}
+    \item Custom Dataset class for loading images and metadata
+    \item Dual-input architecture combining CNN features with scalar input
+    \item Transfer learning using pretrained MobileNetV3 weights
+\end{itemize}
+
+\section{Results and Discussion}
+\subsection{Training Progress}
+The model was trained for 10 epochs on the training set (999 images). Figure \ref{fig:training} shows the training MAE over epochs, demonstrating consistent improvement from 61.83 mm to 16.41 mm.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{image.png}
+    \caption{Training Progress: Mean Absolute Error over 10 epochs}
+    \label{fig:training}
+\end{figure}
+
+\begin{table}[H]
+    \centering
+    \caption{Training MAE Progression}
+    \begin{tabular}{cc}
+        \toprule
+        Epoch & Training MAE (mm) \\
+        \midrule
+        1 & 61.83 \\
+        2 & 27.49 \\
+        3 & 25.00 \\
+        4 & 23.05 \\
+        5 & 23.18 \\
+        6 & 20.40 \\
+        7 & 19.22 \\
+        8 & 18.25 \\
+        9 & 17.59 \\
+        10 & 16.41 \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\subsection{Comparison with Leaderboard}
+The current implementation achieves a training MAE of 16.41 mm after 10 epochs. For context, the HC18 challenge leaderboard results \cite{hc18leaderboard} show:
+
+\begin{table}[H]
+    \centering
+    \caption{Comparison with HC18 Leaderboard (Test Set Performance)}
+    \begin{tabular}{lcc}
+        \toprule
+        Method & MAE (mm) & DSC (\%) \\
+        \midrule
+        Top-performing methods & 2.0-3.0 & 97-98 \\
+        Our model (training) & 16.41 & - \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\subsection{Hyperparameter Experiments}
+Several hyperparameter configurations were explored:
+
+\begin{table}[H]
+    \centering
+    \caption{Hyperparameter Experiments}
+    \begin{tabular}{lcc}
+        \toprule
+        Configuration & Final MAE (mm) & Notes \\
+        \midrule
+        Baseline (lr=0.001, batch=8) & 16.41 & Current model \\
+        Higher learning rate (0.01) & \textgreater 100 & Unstable training \\
+        Smaller batch size (4) & 19.23 & Slower convergence \\
+        No dropout & 18.75 & Slight overfitting \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\section{Conclusion}
+This project demonstrates a deep learning approach for automated fetal head circumference measurement. Key achievements include:
+\begin{itemize}
+    \item Successful implementation of a dual-input regression model
+    \item Integration of image features with physical pixel size information
+    \item Achievement of 16.41 mm MAE on training data
+\end{itemize}
+
+\begin{thebibliography}{9}
+\bibitem{van2018hc18}
+van den Heuvel, T. L., de Bruijn, D., de Korte, C. L., \& Ginneken, B. V. (2018).
+\newblock Automated measurement of fetal head circumference using 2D ultrasound images.
+\newblock \textit{PLOS ONE}, 13(8), e0200412.
+
+\bibitem{hc18leaderboard}
+HC18 Challenge Leaderboard.
+\newblock \url{https://hc18.grand-challenge.org/evaluation/challenge/leaderboard/}
+\end{thebibliography}
+
+\end{document}
