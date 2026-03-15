@@ -1,0 +1,70 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{booktabs}
+\usepackage{float} 
+
+\title{Report 3: }
+\author{22BI13418 - Nguyen Bich Thu}
+
+\begin{document}
+\maketitle
+
+\section{Introduction}
+Traditional diagnostic methods like RT-PCR can be time consuming. Chest X-ray (CXR) imaging serves as a critical, rapid alternative for assesing the level of damage. The goal of this project is to develop an automated Machine Learning (ML) system to perform "infection segmentation"—the process of identifying and highlighting specific areas of viral infection within a lung image.
+
+\section{Dataset Description}
+
+The dataset used in this study is the COVID-QU-Ex dataset, specifically the "Infection Segmentation Data" subset. This dataset consists of chest X-ray images along with expert-labeled ground truth masks for COVID-19 infection areas.
+
+\subsection{Data Characteristics}
+\begin{itemize}
+    \item \textbf{Image Resolution:} All images are standardized to $256 \times 256$ pixels.
+    \item \textbf{Color Space:} The images are in 8-bit grayscale (L mode), which is standard for medical radiographic imaging.
+    \item \textbf{Format:} Images and masks are stored in PNG format to preserve pixel-level details.
+\end{itemize}
+
+\subsection{Data Distribution}
+The dataset is divided into three categories: COVID-19, Non-COVID (other lung infections), and Normal. However, for the purpose of infection segmentation, the COVID-19 class is the primary focus. The distribution across splits is summarized in Table \ref{tab:distribution}.
+
+\begin{table}[h]
+    \centering
+    \begin{tabular}{|l|c|c|c|r|}
+    \hline
+    \textbf{Split} & \textbf{COVID-19} & \textbf{Non-COVID} & \textbf{Normal} & \textbf{Total} \\ \hline
+    Train & 1,864 & 932 & 932 & 3,728 \\ \hline
+    Validation & 466 & 233 & 233 & 932 \\ \hline
+    Test & 583 & 292 & 291 & 1,166 \\ \hline
+    \end{tabular}
+    \caption{Distribution of images across Train, Validation, and Test sets.}
+    \label{tab:distribution}
+\end{table}
+
+\section{Methodology}
+In this study, we utilize a Pixel-wise Random Forest Classifier. This model treats image segmentation as a supervised learning task where each pixel is classified independently.
+
+\subsection{Feature Engineering}
+To provide the model with spatial context, we extract three primary features for each pixel:
+\begin{enumerate}
+    \item \textbf{Intensity:} The raw grayscale value of the pixel.
+    \item \textbf{Gaussian Blur:} A $5 \times 5$ kernel to capture local neighborhood information and reduce noise.
+    \item \textbf{Edge Detection (Sobel):} A filter used to highlight the gradients, helping the model identify the boundaries of infection areas.
+\end{enumerate}
+
+\subsection{Handling Class Imbalance}
+A significant challenge in the COVID-QU-Ex dataset is that healthy pixels far outnumber infection pixels. To address the initial result of a 0.00 Dice Score, we implemented \textit{Balanced Class Weighting}. This penalizes the model more heavily for misclassifying an infection pixel, forcing the Random Forest to prioritize the minority class.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{rf.png} 
+    \caption{Comparison of the original Chest X-ray, the expert Ground Truth, and the Random Forest model's prediction (Dice Score: 0.63).}
+    \label{fig:results_visualization}
+\end{figure}
+
+\section{Conclusion}
+In this project, we successfully implemented a Random Forest-based Machine Learning framework for the segmentation of COVID-19 infections in Chest X-rays. This study demonstrates that classical Machine Learning can achieve a reasonable level of performance (peak Dice Score of 0.63) when combined with effective feature engineering and class-balancing strategies.
+
+The high variance in the test results (Average Dice: 0.3277) suggests that while pixel-wise classification is computationally efficient and accessible for standard hardware, it lacks the spatial context required to consistently distinguish faint infections from healthy anatomical structures. 
+
+\end{document}
